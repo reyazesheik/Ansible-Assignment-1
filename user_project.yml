@@ -1,0 +1,115 @@
+- name: User and Project Management
+  hosts: servers
+  become: yes
+
+  tasks:
+
+    # GROUPS
+    - name: Create dev team
+      group:
+        name: dev-team
+
+    - name: Create devops team
+      group:
+        name: devops-team
+
+    - name: Create admin group
+      group:
+        name: admin-group
+
+    # USERS
+    - name: Add dev users
+      user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        group: dev-team
+        shell: /bin/bash
+        password_expire_max: 30
+      loop:
+        - { name: dev1, uid: 2001 }
+        - { name: dev2, uid: 2002 }
+        - { name: dev3, uid: 2003 }
+
+    - name: Add devops users
+      user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        group: devops-team
+        shell: /bin/sh
+        password_expire_max: 30
+      loop:
+        - { name: devops1, uid: 2004 }
+        - { name: devops2, uid: 2005 }
+        - { name: devops3, uid: 2006 }
+
+    - name: Add admin users
+      user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        group: admin-group
+        shell: /bin/bash
+        password_expire_max: 30
+      loop:
+        - { name: admin1, uid: 2007 }
+        - { name: admin2, uid: 2008 }
+        - { name: admin3, uid: 2009 }
+
+    # SUDO
+    - name: Give sudo to admin
+      lineinfile:
+        path: /etc/sudoers
+        line: "%admin-group ALL=(ALL) ALL"
+        validate: 'visudo -cf %s'
+
+    - name: Give sudo to devops
+      lineinfile:
+        path: /etc/sudoers
+        line: "%devops-team ALL=(ALL) ALL"
+        validate: 'visudo -cf %s'
+
+    # DIRECTORIES
+    - name: Create project directories
+      file:
+        path: "/projects/{{ item }}"
+        state: directory
+      loop:
+        - WebApp
+        - API
+        - Mobile
+
+    - name: Shared directory
+      file:
+        path: /shared
+        state: directory
+        mode: '0777'
+
+    - name: Archive directory
+      file:
+        path: /archive
+        state: directory
+        mode: '0555'
+
+    - name: Admin directory
+      file:
+        path: /admin
+        state: directory
+        mode: '0770'
+
+    # PERMISSIONS
+    - name: Dev team access
+      file:
+        path: /projects/WebApp
+        group: dev-team
+        mode: '0775'
+
+    - name: DevOps team access
+      file:
+        path: /projects/API
+        group: devops-team
+        mode: '0775'
+
+    - name: Admin only access
+      file:
+        path: /admin
+        group: admin-group
+        mode: '0770'
